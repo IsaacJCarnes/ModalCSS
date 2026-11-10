@@ -3,6 +3,7 @@ import "./ModalCSS.css";
 import { useEffect, useState } from "react";
 import useDebounce from "./Utility/useDebounce";
 import useInitialCSSVariables from "./Utility/useGetCSSVariables";
+import Autocomplete from "./AutoComplete/AutoComplete";
 
 //targetProperties = [{name:"", value:"", options?:[""]}]
 const ModalCSS = ({
@@ -11,6 +12,7 @@ const ModalCSS = ({
 }) => {
   const [isExtended, setIsExtended] = useState(false);
   const [propertyTargets, setPropertyTargets] = useState([]);
+  const [autocompleteInput, setAutocompleteInput] = useState("");
   const { debouncedValue } = useDebounce(propertyTargets);
   const initialCSSVars = useInitialCSSVariables();
 
@@ -99,11 +101,17 @@ const ModalCSS = ({
       });
     });
   };
-  
+
+  const addAutocompleteProperty = () => {
+    var targetProp = initialCSSVars[autocompleteInput] || "";
+    addPropertyTarget(autocompleteInput, targetProp);
+    setAutocompleteInput("");
+  };
+
   const validPair = (propertyOption) => {
     return propertyOption && propertyOption.name && propertyOption.value;
   };
-  
+
   return (
     <div id="ModalArea">
       <aside id="ModalCSS" className={isExtended ? "active" : ""}>
@@ -115,6 +123,14 @@ const ModalCSS = ({
         >
           <div>{"<"}</div>
         </button>
+        <div className="autocompleteContainer">
+          <Autocomplete
+            suggestions={Object.keys(initialCSSVars)}
+            inputValue={autocompleteInput}
+            setInputValue={setAutocompleteInput}
+          />
+          <button onClick={addAutocompleteProperty}>Add Variable</button>
+        </div>
         {debouncedValue.map(
           (propertyOption, index) =>
             validPair(propertyOption) && (

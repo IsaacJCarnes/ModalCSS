@@ -1,0 +1,7 @@
+.autocompleteSuggestions{
+    position: absolute;
+    list-style-type: none;
+    background-color: aliceblue;
+    padding: 0px 2px;
+    text-align: left;
+}
