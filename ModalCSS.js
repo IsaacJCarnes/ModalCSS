@@ -1,95 +1,132 @@
 import "./ModalCSS.css";
 
 import { useEffect, useState } from "react";
-import useDebounce from "./useDebounce";
+import useDebounce from "./Utility/useDebounce";
+import useInitialCSSVariables from "./Utility/useGetCSSVariables";
 
-function ModalCSS({
+//targetProperties = [{name:"", value:"", options?:[""]}]
+const ModalCSS = ({
   targetElement = document.documentElement,
-  targetProperties = {},
-}) {
+  targetProperties = [],
+}) => {
   const [isExtended, setIsExtended] = useState(false);
   const [propertyTargets, setPropertyTargets] = useState([]);
   const { debouncedValue } = useDebounce(propertyTargets);
+  const initialCSSVars = useInitialCSSVariables();
 
   useEffect(() => {
-    const cssTargets = Object.entries(targetProperties);
-    if (!cssTargets || cssTargets.length === 0) {
-      console.error("cssTargets is undefined or empty.");
-      return;
-    }
-    setPropertyTargets(cssTargets);
-  }, [targetProperties]);
+    const newProps = [...targetProperties];
+    targetProperties.forEach((property, index) => {
+      if (
+        property["value"] === undefined &&
+        initialCSSVars[property["name"]] !== undefined
+      ) {
+        newProps[index]["value"] = initialCSSVars[property["name"]];
+      }
+    });
+    setPropertyTargets(newProps);
+  }, [targetProperties, initialCSSVars]);
 
   useEffect(() => {
-    console.log(debouncedValue);
-    if (!debouncedValue || debouncedValue.length === 0) {
+    if (!debouncedValue) {
       return;
     }
 
     debouncedValue.forEach(
-      (pair) =>
-        validPair(pair) && targetElement.style.setProperty(pair[0], pair[1]),
+      (propertyOption) =>
+        validPair(propertyOption) &&
+        targetElement.style.setProperty(
+          propertyOption.name,
+          propertyOption.value,
+        ),
     );
-  }, [debouncedValue]);
+  }, [debouncedValue, targetElement]);
 
-  const getRelatedInput = (pair, index) => {
-    const propValue = String(pair[1]);
-    if (propValue.includes("#")) {
+  const getRelatedInput = (propertyOption, index) => {
+    const propValue = String(propertyOption.value);
+    const propOptions = propertyOption.options;
+    if (propOptions) {
+      return (
+        <select onChange={(e) => changeProperty(e.target.value, index)}>
+          {propOptions.map((option, index) => (
+            <option key={index} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    } else if (propValue.includes("#")) {
       return (
         <div>
           <input
             type="color"
-            name={pair[0]}
-            defaultValue={pair[1]}
-            onChange={(e) => changeProperty(e.target.value, index)}
+            name={propertyOption.name}
+            value={propertyOption.value}
+            onInput={(e) => changeProperty(e.target.value, index)}
           />
           <input
             type="text"
-            name={pair[0]}
-            defaultValue={pair[1]}
+            name={propertyOption.name}
+            value={propertyOption.value}
             onChange={(e) => changeProperty(e.target.value, index)}
           />
         </div>
       );
     }
+    return (
+      <input
+        name={propertyOption.name}
+        defaultValue={propertyOption.value}
+        onChange={(e) => changeProperty(e.target.value, index)}
+      />
+    );
+  };
+
+  const addPropertyTarget = (name, value, options = undefined) => {
+    setPropertyTargets((prevProperties) => {
+      return [...prevProperties, { name, value, options }];
+    });
   };
 
   const changeProperty = (value, index) => {
     setPropertyTargets((prevTargets) => {
       return prevTargets.map((prevVal, i) => {
         if (i === index) {
-          return [prevVal[0], value];
+          return { ...prevVal, value: value };
         } else {
           return prevVal;
         }
       });
     });
   };
-
-  const validPair = (pair) => {
-    return pair && pair.length == 2;
+  
+  const validPair = (propertyOption) => {
+    return propertyOption && propertyOption.name && propertyOption.value;
   };
-
+  
   return (
     <div id="ModalArea">
       <aside id="ModalCSS" className={isExtended ? "active" : ""}>
         <button
           id="ModalExtender"
-          onClick={(e) => {console.log("Click"); setIsExtended((prevVal) => !prevVal)}}
+          onClick={(e) => {
+            setIsExtended((prevVal) => !prevVal);
+          }}
         >
           <div>{"<"}</div>
         </button>
         {debouncedValue.map(
-          (pair, index) =>
-            validPair(pair) && (
+          (propertyOption, index) =>
+            validPair(propertyOption) && (
               <div key={index}>
-                {pair[0]}:{getRelatedInput(pair, index)}
+                <div>{propertyOption.name}:</div>
+                {getRelatedInput(propertyOption, index)}
               </div>
             ),
         )}
       </aside>
     </div>
   );
-}
+};
 
 export default ModalCSS;
