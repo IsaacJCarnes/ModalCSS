@@ -9,6 +9,7 @@ import Autocomplete from "./AutoComplete/AutoComplete";
 const ModalCSS = ({
   targetElement = document.documentElement,
   targetProperties = [],
+  pictureOptions = [],
 }) => {
   const [isExtended, setIsExtended] = useState(false);
   const [propertyTargets, setPropertyTargets] = useState([]);
@@ -73,6 +74,16 @@ const ModalCSS = ({
             onChange={(e) => changeProperty(e.target.value, index)}
           />
         </div>
+      );
+    } else if (propValue.includes("png") || propValue.includes("jpg")) {
+      return (
+        <select onChange={(e) => changeProperty(e.target.value, index)}>
+          {pictureOptions.map((option, index) => (
+            <option key={index} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
       );
     }
     return (
