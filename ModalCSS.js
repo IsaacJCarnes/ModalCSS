@@ -6,11 +6,13 @@ import useInitialCSSVariables from "./Utility/useInitialCSSVariables";
 import Autocomplete from "./AutoComplete/AutoComplete";
 import useLocalStorage from "./Utility/useLocalStorage";
 
+// Checks whether a stored property has a usable name and value before it is displayed or applied.
 const validPair = (propertyOption) =>
   propertyOption &&
   typeof propertyOption === "object" &&
   typeof propertyOption.name === "string" &&
   propertyOption.name.length > 0 &&
+  // The key check preserves falsy values such as an empty string; nullish values are rejected separately.
   "value" in propertyOption &&
   propertyOption.value != null;
 
@@ -20,16 +22,22 @@ const ModalCSS = ({
   targetProperties = [],
   pictureOptions = [],
 }) => {
+  // Track panel initialization and the current search text for autocomplete.
   const [isLoaded, setIsLoaded] = useState(false);
   const [autocompleteInput, setAutocompleteInput] = useState("");
 
+  // Read page CSS variables for defaults and suggestions.
   const { initialCSSVars, isLoaded: initialCSSLoaded } =
     useInitialCSSVariables();
+
+  // Load ModalCSS data and provide the function used to update it.
   const {
     storageData,
     setStorageItem,
     isLoaded: localStorageLoaded,
   } = useLocalStorage("ModalCSS");
+
+  // Keep only well-formed property entries from persisted data.
   const storedCSS = useMemo(() => {
     const cssProps = storageData["cssProps"];
     return Array.isArray(cssProps)
@@ -41,12 +49,17 @@ const ModalCSS = ({
         )
       : [];
   }, [storageData]);
+
+  // Delay applying edits so rapid input changes only update the target after typing pauses.
   const { debouncedValue } = useDebounce(storedCSS);
+
+  // Memoize suggestions so Autocomplete does not refilter on unrelated renders.
   const cssVariableNames = useMemo(
     () => Object.keys(initialCSSVars),
     [initialCSSVars],
   );
 
+  // Wait for both sources to load, then merge configured properties with saved values.
   useEffect(() => {
     if (!localStorageLoaded || !initialCSSLoaded) {
       return;
@@ -65,6 +78,7 @@ const ModalCSS = ({
     const propertiesByName = { ...configuredProperties };
     storedCSS.forEach((property) => {
       const configured = configuredProperties[property.name] ?? {};
+      // Saved values survive reloads, while configured options remain authoritative.
       propertiesByName[property.name] = {
         ...configured,
         ...property,
@@ -75,6 +89,7 @@ const ModalCSS = ({
 
     const newProps = Object.values(propertiesByName);
 
+    // Fill unset values from the CSS variables, allows for targetProperties to be sent in without a value
     newProps.forEach((property, index) => {
       if (
         property["value"] === undefined &&
@@ -97,6 +112,7 @@ const ModalCSS = ({
     storedCSS,
   ]);
 
+  // Apply valid debounced values to the target, skipping values that are already set.
   useEffect(() => {
     if (!isLoaded || !debouncedValue) {
       return;
@@ -114,7 +130,9 @@ const ModalCSS = ({
     });
   }, [debouncedValue, targetElement, isLoaded]);
 
+  // Selects the appropriate input based on configured options or the property's current value.
   const getRelatedInput = (propertyOption, index) => {
+    // String conversion lets the same checks handle numeric and missing values safely.
     const propValue = String(propertyOption.value ?? "");
     const propOptions = propertyOption.options;
     if (propOptions) {
@@ -170,19 +188,7 @@ const ModalCSS = ({
     );
   };
 
-  const getPropertyInputs = () => {
-    if (!isLoaded) return <></>;
-    return storedCSS.map(
-      (propertyOption, index) =>
-        validPair(propertyOption) && (
-          <div key={propertyOption.name}>
-            <div>{propertyOption.name}:</div>
-            {getRelatedInput(propertyOption, index)}
-          </div>
-        ),
-    );
-  };
-
+  // Adds a property to persisted settings unless its name is empty or already present.
   const addPropertyTarget = (name, value, options = undefined) => {
     const normalizedName = name.trim();
     if (
@@ -195,7 +201,9 @@ const ModalCSS = ({
     setStorageItem("cssProps", newProps);
   };
 
+  // Updates one property's value while preserving every other stored property.
   const changeProperty = (value, index) => {
+    // Rebuild the array immutably and clone only the entry being changed.
     const newProps = storedCSS.map((prevVal, i) => {
       if (i === index) {
         return { ...prevVal, value: value };
@@ -206,6 +214,7 @@ const ModalCSS = ({
     setStorageItem("cssProps", newProps);
   };
 
+  // Adds the selected CSS variable using its discovered page value as the initial setting.
   const addAutocompleteProperty = () => {
     const propertyName = autocompleteInput.trim();
     if (
@@ -214,9 +223,23 @@ const ModalCSS = ({
     ) {
       return;
     }
+    // Keep an empty editable value when the variable has no discovered declaration value.
     const targetProp = initialCSSVars[propertyName] ?? "";
     addPropertyTarget(propertyName, targetProp);
     setAutocompleteInput("");
+  };
+
+  const PropertyInputs = () => {
+    if (!isLoaded) return <></>;
+    return storedCSS.map(
+      (propertyOption, index) =>
+        validPair(propertyOption) && (
+          <div key={propertyOption.name}>
+            <div>{propertyOption.name}:</div>
+            {getRelatedInput(propertyOption, index)}
+          </div>
+        ),
+    );
   };
 
   return (
@@ -254,7 +277,7 @@ const ModalCSS = ({
             Add Variable
           </button>
         </div>
-        {getPropertyInputs()}
+        {PropertyInputs()}
       </aside>
     </div>
   );
