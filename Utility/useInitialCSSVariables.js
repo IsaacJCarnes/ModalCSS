@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 const useInitialCSSVariables = () => {
   const [initialCSSVars, setIntialCSSVars] = useState([]);
-
+  const [isLoaded, setIsLoaded] = useState(false);
   useEffect(() => {
     const variables = {};
     Array.from(document.styleSheets).forEach((sheet) => {
@@ -22,8 +22,13 @@ const useInitialCSSVariables = () => {
       }
     });
     setIntialCSSVars(variables);
+    setIsLoaded(true)
+
+    return(() => {
+      setIsLoaded(true)
+    })
   }, []);
-  return initialCSSVars;
+  return {initialCSSVars, isLoaded};
 };
 
 export default useInitialCSSVariables;
