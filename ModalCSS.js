@@ -20,7 +20,8 @@ const validPair = (propertyOption) =>
 //targetProperties = [{name:"", value:"", options?:[""]}]
 const ModalCSS = ({
   targetElement = document.documentElement,
-  targetProperties = [],
+  defaultProperties = [],
+  optionalProperties = [],
   pictureOptions = [],
 }) => {
   // Track panel initialization and the current search text for autocomplete.
@@ -55,10 +56,13 @@ const ModalCSS = ({
   const { debouncedValue } = useDebounce(storedCSS);
 
   // Memoize suggestions so Autocomplete does not refilter on unrelated renders.
-  const cssVariableNames = useMemo(
-    () => Object.keys(initialCSSVars),
-    [initialCSSVars],
-  );
+  const cssVariableNames = useMemo(() => {
+    const optionalNames = optionalProperties.map(
+      (property) => property.name ?? null,
+    );
+    return [...Object.keys(initialCSSVars), ...optionalNames];
+  }, [initialCSSVars, optionalProperties]);
+
   const isExtended = Boolean(storageData["isExtended"] ?? true);
   const {
     position,
@@ -75,7 +79,7 @@ const ModalCSS = ({
     }
 
     const configuredProperties = {};
-    targetProperties.forEach((property) => {
+    defaultProperties.forEach((property) => {
       if (property && typeof property.name === "string" && property.name) {
         configuredProperties[property.name] = {
           ...configuredProperties[property.name],
@@ -93,6 +97,7 @@ const ModalCSS = ({
         ...property,
         value: property.value ?? configured.value,
         options: configured.options ?? property.options,
+        type: configured.type ?? property.type,
       };
     });
 
@@ -113,7 +118,7 @@ const ModalCSS = ({
     }
     setIsLoaded(true);
   }, [
-    targetProperties,
+    defaultProperties,
     initialCSSVars,
     localStorageLoaded,
     initialCSSLoaded,
@@ -144,6 +149,8 @@ const ModalCSS = ({
     // String conversion lets the same checks handle numeric and missing values safely.
     const propValue = String(propertyOption.value ?? "");
     const propOptions = propertyOption.options;
+    const propType = String(propertyOption.type ?? "");
+
     if (propOptions) {
       return (
         <select
@@ -157,7 +164,7 @@ const ModalCSS = ({
           ))}
         </select>
       );
-    } else if (propValue.includes("#")) {
+    } else if (propValue.includes("#") || propType === "color") {
       return (
         <div>
           <input
@@ -174,7 +181,11 @@ const ModalCSS = ({
           />
         </div>
       );
-    } else if (propValue.includes("png") || propValue.includes("jpg")) {
+    } else if (
+      propValue.includes("png") ||
+      propValue.includes("jpg") ||
+      propType === "picture"
+    ) {
       return (
         <select
           value={String(propertyOption.value ?? "")}
@@ -198,7 +209,12 @@ const ModalCSS = ({
   };
 
   // Adds a property to persisted settings unless its name is empty or already present.
-  const addPropertyTarget = (name, value, options = undefined) => {
+  const addPropertyTarget = (
+    name,
+    value,
+    options = undefined,
+    type = undefined,
+  ) => {
     const normalizedName = name.trim();
     if (
       !normalizedName ||
@@ -206,7 +222,10 @@ const ModalCSS = ({
     ) {
       return;
     }
-    const newProps = [...storedCSS, { name: normalizedName, value, options }];
+    const newProps = [
+      ...storedCSS,
+      { name: normalizedName, value, ...(options != null && { options }), ...(type != null && { type }) },
+    ];
     setStorageItem("cssProps", newProps);
   };
 
@@ -234,7 +253,19 @@ const ModalCSS = ({
     }
     // Keep an empty editable value when the variable has no discovered declaration value.
     const targetProp = initialCSSVars[propertyName] ?? "";
-    addPropertyTarget(propertyName, targetProp);
+    //Find related optional prop if it exists
+    const optionalPropWithName =
+      targetProp === ""
+        ? optionalProperties.find(
+            (property) => property.name && property.name === propertyName,
+          )
+        : null;
+    addPropertyTarget(
+      propertyName,
+      targetProp,
+      null,
+      optionalPropWithName?.type ?? null,
+    );
     setAutocompleteInput("");
   };
 
