@@ -1,57 +1,93 @@
 #ModalArea {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
+  position: relative;
+  z-index: 99;
 }
 
 #ModalCSS {
-  min-width: 100px;
-  min-height: 200px;
-
   --text: black;
-  --border-radius: 5px;
-  color: var(--text);
+  --border-radius: 6px;
+  box-sizing: border-box;
   position: fixed;
-  right: 0px;
-  top: 20vh;
-  border: 2px solid black;
-  border-radius: var(--border-radius) 0px 0px var(--border-radius);
+  top: 20px;
+  right: 20px;
+  width: min(360px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow: hidden;
+  color: var(--text);
   font-size: small;
   background-color: tan;
-  padding: 5px;
-  transform: translateX(100%);
-  transition: transform 0.5s;
-  transform-style: preserve-3d;
-  z-index: 99;
+  border: 2px solid black;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 30%);
 }
-#ModalCSS.active{
-    transform: translateX(0%);
-}
-#ModalExtender {
-  position: absolute;
-  cursor: pointer;
+
+#ModalHeader {
   display: flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 5px 8px 5px 12px;
+  border-bottom: 1px solid rgb(0 0 0 / 35%);
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+#ModalHeader:active {
+  cursor: grabbing;
+}
+
+#ModalExtender {
+  display: flex;
+  width: 32px;
   height: 30px;
-  width: 29px;
-  color: var(--text);
-  top: 10px;
-  left: -28px;
-  background-color: inherit;
-  border: solid black;
-  border-radius: var(--border-radius) 0px 0px var(--border-radius);
-  border-width: 2px 0px 2px 2px;
-  z-index: -1;
-  font-size: x-large;
-  font-weight: 500;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  background-color: transparent;
+  border: 1px solid black;
+  border-radius: 4px;
+  cursor: pointer;
 }
 
+#ModalExtender:hover {
+  background-color: rgb(0 0 0 / 10%);
+}
 
-#ModalCSS select{
+.modalContent {
+  max-height: calc(100vh - 90px);
+  overflow: auto;
+  padding: 10px;
+}
+
+#ModalCSS.collapsed .modalContent {
+  display: none;
+}
+
+#ModalCSS .modalControls {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+#ModalCSS .modalControls > button {
+  flex: 0 0 auto;
+}
+
+#ModalCSS select {
   max-width: 200px;
+  overflow: hidden;
   text-overflow: ellipsis;
   direction: rtl;
+  text-align: left;
+}
+
+#ModalCSS select option {
   text-align: left;
 }
 
@@ -60,12 +96,9 @@
 }
 
 #ModalCSS input[type="color"] {
-  /* Clear default browser engine styling */
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
-
-  /* Define dimensions and structure */
   width: 20px;
   height: 20px;
   border: none;
@@ -74,20 +107,25 @@
   cursor: pointer;
   outline: none;
 }
+
 #ModalCSS input[type="color"]::-webkit-color-swatch-wrapper {
   padding: 0;
 }
+
 #ModalCSS input[type="color"]::-webkit-color-swatch {
   border-radius: 50%;
   box-shadow: 0 0 0 2px #050505;
 }
+
 #ModalCSS input[type="color"]::-moz-color-swatch {
   border-radius: 50%;
   box-shadow: 0 0 0 2px #050505;
 }
+
 #ModalCSS input[type="color"]:hover {
   transform: scale(1.05);
 }
+
 #ModalCSS input[type="color"]:focus-visible {
-  box-shadow: 0 0 0 3px #3b82f6; /* Accessible keyboard focus indicator */
+  box-shadow: 0 0 0 3px #3b82f6;
 }

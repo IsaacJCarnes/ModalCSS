@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo } from "react";
 import useDebounce from "./Utility/useDebounce";
 import useInitialCSSVariables from "./Utility/useInitialCSSVariables";
 import Autocomplete from "./AutoComplete/AutoComplete";
+import useDragControls from "./Utility/useDragControls";
 import useLocalStorage from "./Utility/useLocalStorage";
 
 // Checks whether a stored property has a usable name and value before it is displayed or applied.
@@ -58,6 +59,14 @@ const ModalCSS = ({
     () => Object.keys(initialCSSVars),
     [initialCSSVars],
   );
+  const isExtended = Boolean(storageData["isExtended"] ?? true);
+  const {
+    position,
+    modalRef,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerEnd,
+  } = useDragControls(isExtended);
 
   // Wait for both sources to load, then merge configured properties with saved values.
   useEffect(() => {
@@ -245,39 +254,63 @@ const ModalCSS = ({
   return (
     <div id="ModalArea">
       <aside
+        ref={modalRef}
         id="ModalCSS"
-        className={
-          (storageData["isExtended"] ?? false) && isLoaded ? "active" : ""
+        className={isExtended ? "" : "collapsed"}
+        style={
+          position
+            ? {
+                left: position.left,
+                top: position.top,
+                right: "auto",
+              }
+            : undefined
         }
+        role="dialog"
+        aria-label="CSS customization panel"
       >
-        <button
-          id="ModalExtender"
-          onClick={() => {
-            if (!isLoaded) return;
-            setStorageItem("isExtended", !Boolean(storageData["isExtended"]));
-          }}
+        <div
+          id="ModalHeader"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
         >
-          <div>{"<"}</div>
-        </button>
-        <div className="autocompleteContainer">
-          <Autocomplete
-            suggestions={cssVariableNames}
-            inputValue={autocompleteInput}
-            setInputValue={setAutocompleteInput}
-          />
+          <strong>ModalCSS</strong>
           <button
-            disabled={
-              !autocompleteInput.trim() ||
-              storedCSS.some(
-                (property) => property.name === autocompleteInput.trim(),
-              )
-            }
-            onClick={addAutocompleteProperty}
+            id="ModalExtender"
+            type="button"
+            aria-expanded={isExtended}
+            aria-label={isExtended ? "Collapse panel" : "Expand panel"}
+            onClick={() => {
+              if (!isLoaded) return;
+              setStorageItem("isExtended", !isExtended);
+            }}
           >
-            Add Variable
+            {isExtended ? "⬇" : "⬅"}
           </button>
         </div>
-        {PropertyInputs()}
+        <div className="modalContent">
+          <div className="modalControls">
+            <Autocomplete
+              suggestions={cssVariableNames}
+              inputValue={autocompleteInput}
+              setInputValue={setAutocompleteInput}
+            />
+            <button
+              disabled={
+                !autocompleteInput.trim() ||
+                storedCSS.some(
+                  (property) => property.name === autocompleteInput.trim(),
+                )
+              }
+              onClick={addAutocompleteProperty}
+            >
+              Add Variable
+            </button>
+          </div>
+          {PropertyInputs()}
+        </div>
       </aside>
     </div>
   );
